@@ -1,4 +1,8 @@
-import { assert, assertEquals, assertThrows } from "https://deno.land/std/testing/asserts.ts";
+import {
+  assert,
+  assertEquals,
+  assertThrows
+} from "https://deno.land/std/testing/asserts.ts";
 import { test } from "https://deno.land/std/testing/mod.ts";
 import { v4 } from "https://deno.land/std/uuid/mod.ts";
 
@@ -29,7 +33,7 @@ test({
     const mutex = new Mutex();
     assertThrows(() => mutex.release(``));
   }
-})
+});
 
 test({
   name: `throws if mutex id doesn't match current mutex holder`,
@@ -39,7 +43,7 @@ test({
     assertThrows(() => mutex.release(`abc123`));
     mutex.release(id);
   }
-})
+});
 
 test(`blocks async code that has not acquired the mutex`, async () => {
   let mutex = new Mutex();
@@ -55,7 +59,7 @@ test(`blocks async code that has not acquired the mutex`, async () => {
 
     semaphore++;
     mutex.release(mutexId);
-  }
+  };
 
   await Promise.all([testSemaphore(), testSemaphore()]);
 });
@@ -70,7 +74,13 @@ test(`blocks data object access while fetching data to modify the data object`, 
     const mutexId = await mutex.acquire();
     return { mutexId, dataStore: data };
   };
-  const setDataStore = ({ mutexId, dataStore }: { mutexId: string, dataStore: any }) => {
+  const setDataStore = ({
+    mutexId,
+    dataStore
+  }: {
+    mutexId: string;
+    dataStore: any;
+  }) => {
     data = dataStore;
     mutex.release(mutexId);
   };
@@ -80,7 +90,7 @@ test(`blocks data object access while fetching data to modify the data object`, 
   const first = async () => {
     assertEquals(order, 0);
     order++;
-    
+
     const data = await getDataStore();
     assert(!data.dataStore.fetchedData); // assert that the doesn't exist
 
@@ -88,13 +98,13 @@ test(`blocks data object access while fetching data to modify the data object`, 
     // assert that this next bit happens after the `second` function requests the data store
     assertEquals(order, 2);
     order++;
-    
-    setDataStore({ 
+
+    setDataStore({
       mutexId: data.mutexId,
       dataStore: {
         ...data.dataStore,
-        fetchedData: await result.json(),
-      },
+        fetchedData: await result.json()
+      }
     });
   };
   const second = async () => {

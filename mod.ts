@@ -24,7 +24,7 @@ export default class Mutex {
       return Promise.resolve(this.currentLockHolderId);
     }
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this.waitingResolvers.push(resolve);
     });
   }
