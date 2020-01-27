@@ -60,7 +60,7 @@ test(`blocks async code that has not acquired the mutex`, async () => {
   await Promise.all([testSemaphore(), testSemaphore()]);
 });
 
-test(`blocks async http fetch code where a data object gets modified`, async () => {
+test(`blocks data object access while fetching data to modify the data object`, async () => {
   const mutex = new Mutex();
   let data: any = {
     url: `https://gist.githubusercontent.com/Matthew-Smith/c7f35894ccbdd7dca587a276606e2639/raw/00c4c9d8601bd261be06f489a1548bbf4fc8316e/deno_async_fetch_test.json`
@@ -80,10 +80,15 @@ test(`blocks async http fetch code where a data object gets modified`, async () 
   const first = async () => {
     assertEquals(order, 0);
     order++;
+    
     const data = await getDataStore();
+    assert(!data.dataStore.fetchedData); // assert that the doesn't exist
+
     const result = await fetch(data.dataStore.url);
+    // assert that this next bit happens after the `second` function requests the data store
     assertEquals(order, 2);
     order++;
+    
     setDataStore({ 
       mutexId: data.mutexId,
       dataStore: {
@@ -93,10 +98,11 @@ test(`blocks async http fetch code where a data object gets modified`, async () 
     });
   };
   const second = async () => {
-    assertEquals(order, 1);
+    assertEquals(order, 1); //
     order++;
     const data = await getDataStore();
 
+    // assert that this next bit happens after the `first` function releases the data store
     assertEquals(order, 3);
     order++;
 
