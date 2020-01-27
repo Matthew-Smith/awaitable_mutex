@@ -45,7 +45,7 @@ test(`blocks async code that has not acquired the mutex`, async () => {
   let mutex = new Mutex();
 
   let semaphore = 1;
-  async function testSemaphore() {
+  const testSemaphore = async () => {
     const mutexId = await mutex.acquire();
     assertEquals(semaphore, 1);
 
@@ -58,4 +58,52 @@ test(`blocks async code that has not acquired the mutex`, async () => {
   }
 
   await Promise.all([testSemaphore(), testSemaphore()]);
+});
+
+test(`blocks async http fetch code where a data object gets modified`, async () => {
+  const mutex = new Mutex();
+  let data: any = {
+    url: `https://gist.githubusercontent.com/Matthew-Smith/c7f35894ccbdd7dca587a276606e2639/raw/00c4c9d8601bd261be06f489a1548bbf4fc8316e/deno_async_fetch_test.json`
+  };
+
+  const getDataStore = async () => {
+    const mutexId = await mutex.acquire();
+    return { mutexId, dataStore: data };
+  };
+  const setDataStore = ({ mutexId, dataStore }: { mutexId: string, dataStore: any }) => {
+    data = dataStore;
+    mutex.release(mutexId);
+  };
+
+  let order = 0;
+
+  const first = async () => {
+    assertEquals(order, 0);
+    order++;
+    const data = await getDataStore();
+    const result = await fetch(data.dataStore.url);
+    assertEquals(order, 2);
+    order++;
+    setDataStore({ 
+      mutexId: data.mutexId,
+      dataStore: {
+        ...data.dataStore,
+        fetchedData: await result.json(),
+      },
+    });
+  };
+  const second = async () => {
+    assertEquals(order, 1);
+    order++;
+    const data = await getDataStore();
+
+    assertEquals(order, 3);
+    order++;
+
+    assert(!!data.dataStore.fetchedData); // assert that the data was fetched
+    setDataStore(data);
+  };
+
+  first();
+  second();
 });
