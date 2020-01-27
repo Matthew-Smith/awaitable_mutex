@@ -1,6 +1,8 @@
 import { v4 } from "https://deno.land/std/uuid/mod.ts";
 
-type Resolver = (id: string) => void;
+type Resolver = (mutexId: string) => void;
+
+export type MutexId = string;
 
 /**
  * A mutex lock for coordination across async functions
@@ -9,19 +11,20 @@ type Resolver = (id: string) => void;
 export default class Mutex {
   private acquired: boolean = false;
   private waitingResolvers: Resolver[] = [];
-  private currentLockHolderId: string | null = null;
+  private currentMutexId: MutexId | null = null;
 
   /**
-   * Acquires the lock, waiting if necessary for it to become free if it is already locked. The
+   * Acquires the mutex, waiting if necessary for it to become free if it is already locked. The
    * returned promise is fulfilled once the lock is acquired.
    *
    * After acquiring the lock, you **must** call `release` when you are done with it.
+   * @returns {MutexId} the v4 UUID of this lock
    */
-  acquire(): Promise<string> {
+  acquire(): Promise<MutexId> {
     if (!this.acquired) {
       this.acquired = true;
-      this.currentLockHolderId = v4.generate();
-      return Promise.resolve(this.currentLockHolderId);
+      this.currentMutexId = v4.generate();
+      return Promise.resolve(this.currentMutexId);
     }
 
     return new Promise(resolve => {
@@ -31,23 +34,25 @@ export default class Mutex {
 
   /**
    * Releases the lock and gives it to the next waiting acquirer, if there is one. Each acquirer
-   * must release the lock exactly once.
+   * may release the lock exactly once. If the UUID passed in doesn't match the current lock holder
+   * this will throw an error.
+   * @param {MutexId} mutexId the UUID returned from the aquire function call
    */
-  release(id: string): void {
+  release(mutexId: MutexId): void {
     if (!this.acquired) {
       throw new Error(`Cannot release an unacquired lock`);
     }
-    if (id !== this.currentLockHolderId) {
+    if (mutexId !== this.currentMutexId) {
       throw new Error(`Release ID doesn't match current lock ID`);
     }
 
     if (this.waitingResolvers.length > 0) {
       const resolve = this.waitingResolvers.shift()!;
-      this.currentLockHolderId = v4.generate();
-      resolve(this.currentLockHolderId);
+      this.currentMutexId = v4.generate();
+      resolve(this.currentMutexId);
     } else {
       this.acquired = false;
-      this.currentLockHolderId = null;
+      this.currentMutexId = null;
     }
   }
 }
