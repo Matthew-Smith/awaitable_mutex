@@ -2,7 +2,7 @@
 Deno library for blocking execution of a section of code to one at a time
 
 # Usage
-```
+```TypeScript
 import Mutex from "https://deno.land/x/awaitable_mtuex/mod.ts"
 
 const mutex = new Mutex();
@@ -15,6 +15,6 @@ const testFn = async () => {
 ```
 
 # Testing
-```
+```Bash
 deno test --allow-env --allow-write --allow-net mod_test.ts
 ```
