@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "pretty": true,
+    "strict": true,
+    "plugins": [
+      {
+        "name": "typescript-deno-plugin"
+      }
+    ]
+  },
+  "include": [
+    "./**/*.ts"
+  ]
+}
