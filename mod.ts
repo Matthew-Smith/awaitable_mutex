@@ -1,5 +1,3 @@
-import { v4 } from "https://deno.land/std/uuid/mod.ts";
-
 type Resolver = (mutexId: string) => void;
 
 export type MutexId = string;
@@ -23,7 +21,7 @@ export default class Mutex {
   acquire(): Promise<MutexId> {
     if (!this.acquired) {
       this.acquired = true;
-      this.currentMutexId = v4.generate();
+      this.currentMutexId = crypto.randomUUID();
       return Promise.resolve(this.currentMutexId);
     }
 
@@ -48,7 +46,7 @@ export default class Mutex {
 
     if (this.waitingResolvers.length > 0) {
       const resolve = this.waitingResolvers.shift()!;
-      this.currentMutexId = v4.generate();
+      this.currentMutexId = crypto.randomUUID();
       resolve(this.currentMutexId);
     } else {
       this.acquired = false;
